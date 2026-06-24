@@ -2760,6 +2760,36 @@ li > .${EditorStyleHelper.toggleBlock} {
 }
 `;
 
+/*
+ * Dude house style: a more relaxed reading rhythm (looser line-height and
+ * block spacing, roomier callouts). Originally injected at the edge via an
+ * nginx sub_filter; baked into source here so this branch is the single
+ * source of truth and the edge hack can be removed. Appended last so it
+ * layers over the defaults. Ref: DEV-703.
+ */
+const dudeSpacing = () => css`
+  .ProseMirror {
+    line-height: 1.7;
+  }
+  .ProseMirror > * {
+    margin-top: 1em;
+    margin-bottom: 1em;
+  }
+  .ProseMirror > *:first-child {
+    margin-top: 0;
+  }
+  .ProseMirror li {
+    margin: 0.35em 0;
+  }
+  .ProseMirror li p {
+    margin: 0.2em 0;
+  }
+  .notice-block {
+    padding: 14px !important;
+    gap: 6px !important;
+  }
+`;
+
 const EditorContainer = styled.div<Props>`
   ${style}
   ${mathStyle}
@@ -2769,6 +2799,7 @@ const EditorContainer = styled.div<Props>`
   ${findAndReplaceStyle}
   ${emailStyle}
   ${textStyle}
+  ${dudeSpacing}
 `;
 
 export default EditorContainer;
