@@ -1,0 +1,37 @@
+name: Export dude image
+
+# Pulls the already-built dude image from GHCR (private is fine here: the
+# workflow token can read the org's own packages) and uploads it as a
+# downloadable artifact, so the box can fetch it with plain repo access
+# instead of needing read:packages or a public package. Ref: DEV-703.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull and save image
+        run: |
+          docker pull ghcr.io/digitoimistodude/outline:dude
+          docker save ghcr.io/digitoimistodude/outline:dude | gzip > outline-dude.tar.gz
+          ls -lh outline-dude.tar.gz
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: outline-dude-image
+          path: outline-dude.tar.gz
+          retention-days: 1
