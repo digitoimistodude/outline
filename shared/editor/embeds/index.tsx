@@ -21,7 +21,6 @@ import Trello from "./Trello";
 import Vimeo from "./Vimeo";
 import YouTube from "./YouTube";
 import PlantUmlDiagrams from "./PlantUml";
-import IntegrationEmbed from "./IntegrationEmbed";
 
 export type EmbedProps = {
   isSelected: boolean;
@@ -249,26 +248,6 @@ const embeds: EmbedDescriptor[] = [
     regexMatch: [/^https:\/\/viewer\.diagrams\.net\/(?!proxy).*(title=\\w+)?/],
     icon: <Img src="/images/diagrams.png" alt="Diagrams.net" />,
     component: Diagrams,
-    visible: false,
-  }),
-  new EmbedDescriptor({
-    id: "linear",
-    title: "Linear",
-    name: IntegrationService.Linear,
-    keywords: "linear issue",
-    regexMatch: [/^https?:\/\/linear\.app\/[^/]+\/issue\/[A-Za-z0-9]+-\d+/],
-    component: IntegrationEmbed,
-    hideToolbar: true,
-    visible: false,
-  }),
-  new EmbedDescriptor({
-    id: "github",
-    title: "GitHub",
-    name: IntegrationService.GitHub,
-    keywords: "github issue pull request",
-    regexMatch: [/^https?:\/\/github\.com\/[^/]+\/[^/]+\/(?:issues|pull)\/\d+/],
-    component: IntegrationEmbed,
-    hideToolbar: true,
     visible: false,
   }),
   new EmbedDescriptor({

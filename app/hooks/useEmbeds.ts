@@ -2,7 +2,6 @@ import { find } from "es-toolkit/compat";
 import { useEffect, useMemo } from "react";
 import embeds from "@shared/editor/embeds";
 import { IntegrationType, TeamPreference } from "@shared/types";
-import IntegrationEmbed from "~/editor/embeds/IntegrationEmbed";
 import type Integration from "~/models/Integration";
 import Logger from "~/utils/Logger";
 import useCurrentTeam from "./useCurrentTeam";
@@ -49,12 +48,6 @@ export default function useEmbeds(loadIfMissing = false) {
         }
 
         e.disabled = disabledEmbeds.includes(e.id);
-
-        // Linear/GitHub render a card from unfurl data via an app component
-        // (needs store access), rather than the shared placeholder.
-        if (e.id === "linear" || e.id === "github") {
-          e.component = IntegrationEmbed;
-        }
 
         return e;
       }),
