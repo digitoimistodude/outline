@@ -10,13 +10,11 @@ import {
 } from "@aws-sdk/client-s3";
 import { Upload } from "@aws-sdk/lib-storage";
 import "@aws-sdk/signature-v4-crt"; // https://github.com/aws/aws-sdk-js-v3#functionality-requiring-aws-common-runtime-crt
-import type { PresignedPostOptions } from "@aws-sdk/s3-presigned-post";
-import { createPresignedPost } from "@aws-sdk/s3-presigned-post";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import fs from "fs-extra";
 import invariant from "invariant";
-import { compact } from "es-toolkit/compat";
 import tmp from "tmp";
+import { CSRF } from "@shared/constants";
 import env from "@server/env";
 import Logger from "@server/logging/Logger";
 import BaseStorage from "./BaseStorage";
@@ -34,30 +32,37 @@ export default class S3Storage extends BaseStorage {
     });
   }
 
+  /**
+   * Returns the fields the browser needs to upload a file. Cloudflare R2 does
+   * not implement S3 presigned POST uploads, so uploads are proxied through the
+   * app: the returned upload URL points at /api/files.create (see getUploadUrl)
+   * which stores the file server-side via PUT. These fields mirror what that
+   * route expects, including the CSRF token for cookie-authenticated browsers.
+   *
+   * @param ctx the request context, used to read the CSRF cookie.
+   * @param key the storage key the attachment was created with.
+   * @param acl the access control level for the attachment.
+   * @param maxUploadSize the maximum permitted upload size in bytes.
+   * @param contentType the content type of the file being uploaded.
+   * @returns the proxy upload form fields.
+   */
   public async getPresignedPost(
-    _ctx: AppContext,
+    ctx: AppContext,
     key: string,
-    _acl: string,
+    acl: string,
     maxUploadSize: number,
     contentType = "image"
   ) {
-    const params: PresignedPostOptions = {
-      Bucket: env.AWS_S3_UPLOAD_BUCKET_NAME as string,
-      Key: key,
-      Conditions: compact([
-        ["content-length-range", 0, maxUploadSize],
-        ["starts-with", "$Content-Type", contentType],
-        ["starts-with", "$Cache-Control", ""],
-      ]),
-      Fields: {
-        "Content-Disposition": this.getContentDisposition(contentType),
+    return Promise.resolve({
+      url: this.getUrlForKey(key),
+      fields: {
         key,
-        ...(env.AWS_S3_ACL && { ACL: env.AWS_S3_ACL as ObjectCannedACL }),
+        acl,
+        maxUploadSize: String(maxUploadSize),
+        contentType,
+        [CSRF.fieldName]: ctx.cookies.get(CSRF.cookieName) || "",
       },
-      Expires: 3600,
-    };
-
-    return createPresignedPost(this.client, params);
+    });
   }
 
   private getPublicEndpoint(isServerUpload?: boolean) {
@@ -92,7 +97,12 @@ export default class S3Storage extends BaseStorage {
   }
 
   public getUploadUrl(isServerUpload?: boolean) {
-    return this.getPublicEndpoint(isServerUpload);
+    // Server-side stores go direct to the bucket; browser uploads are proxied
+    // through the app because R2 has no presigned POST support.
+    if (isServerUpload) {
+      return this.getPublicEndpoint(isServerUpload);
+    }
+    return "/api/files.create";
   }
 
   public getUrlForKey(key: string): string {

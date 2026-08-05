@@ -23,17 +23,21 @@ if (env.FILE_STORAGE === "local") {
   }
 }
 
+// Register the file upload/serve routes for local storage, and also for S3 so
+// browsers can upload through the app. Cloudflare R2 does not support the S3
+// presigned POST that direct-to-bucket uploads rely on, so those uploads are
+// proxied via /api/files.create (which stores server-side with PUT).
 const enabled = !!(
   env.FILE_STORAGE_UPLOAD_MAX_SIZE &&
-  env.FILE_STORAGE_LOCAL_ROOT_DIR &&
-  env.FILE_STORAGE === "local"
+  (env.FILE_STORAGE === "s3" ||
+    (env.FILE_STORAGE_LOCAL_ROOT_DIR && env.FILE_STORAGE === "local"))
 );
 
 if (enabled) {
   PluginManager.add([
     {
-      name: "Local file storage",
-      description: "Plugin for storing files on the local file system",
+      name: "File storage",
+      description: "Proxy upload and serve routes for local and S3 storage",
       type: Hook.API,
       value: router,
       priority: PluginPriority.Normal,
